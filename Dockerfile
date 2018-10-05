@@ -2,7 +2,7 @@ FROM library/openjdk:10-jre
 
 WORKDIR /app
 
-ARG LOGINSERVICE_VERSION=0.1
+ARG LOGINSERVICE_VERSION=1.0
 
 ARG CHROME_VERSION="google-chrome-stable"
 RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
