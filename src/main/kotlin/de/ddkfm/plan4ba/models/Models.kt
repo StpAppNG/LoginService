@@ -1,7 +1,5 @@
 package de.ddkfm.plan4ba.models
 
-import kotlin.reflect.full.memberProperties
-
 data class DatabaseConfig(
         var host : String,
         var port : Int,
@@ -22,11 +20,11 @@ data class Result(
         var university : String = ""
 ) {
     fun toJson() : String {
-        return Result::class.memberProperties
+        return Result::class.java.declaredFields
                 .map{ member ->
                     "\"${member.name}\" : \"${member.get(this)}\""
                 }
                 .joinToString(separator = ",", prefix = "{", postfix = "}")
     }
-    fun isValide() : Boolean = hash != null && group != null && university != null
+    fun isValide() : Boolean = !(hash.isEmpty() || group.isEmpty() || university.isEmpty())
 }

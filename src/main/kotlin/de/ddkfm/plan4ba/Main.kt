@@ -22,7 +22,7 @@ fun main(args : Array<String>) {
             if (jsonObject.has("username") && jsonObject.has("password")) {
                 val result = login(username = jsonObject.getString("username"),
                         password = jsonObject.getString("password"))
-                if (!result.isValide()) {
+                if (result.isValide()) {
                     result.toJson()
                 } else {
                     "{ \"status\" : 400, \"message\" : \"username or password are not given\"}"
