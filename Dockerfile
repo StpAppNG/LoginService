@@ -4,14 +4,11 @@ WORKDIR /app
 
 ARG LOGINSERVICE_VERSION=1.0
 
-ARG CHROME_VERSION="google-chrome-stable"
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-  && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
-  && apt-get update -qqy \
-  && apt-get -qqy install \
-    ${CHROME_VERSION:-google-chrome-stable} \
-  && rm /etc/apt/sources.list.d/google-chrome.list \
-  && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+RUN apt-get update -qqy \
+  && apt-get install -y fonts-liberation libappindicator3-1 libxss1 lsb-release xdg-utils \
+  && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+  && dpkg -i google-chrome-stable_current_amd64.deb \
+  && rm google-chrome-stable_current_amd64.deb
 
 RUN wget https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip \
     && unzip chromedriver_linux64.zip \
