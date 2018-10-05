@@ -55,6 +55,7 @@
 
 
     <build>
+        <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
         <plugins>
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
