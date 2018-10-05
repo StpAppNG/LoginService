@@ -1,6 +1,8 @@
-package de.ddkfm.stpapp
+package de.ddkfm.plan4ba
 
+import de.ddkfm.plan4ba.models.Result
 import org.json.JSONObject
+import org.jsoup.Jsoup
 import org.openqa.selenium.By
 import org.openqa.selenium.chrome.ChromeOptions
 import org.openqa.selenium.remote.DesiredCapabilities
@@ -8,7 +10,6 @@ import org.openqa.selenium.remote.RemoteWebDriver
 import spark.kotlin.port
 import spark.kotlin.post
 import java.net.URL
-import java.util.regex.Pattern
 
 
 fun main(args : Array<String>) {
@@ -19,10 +20,10 @@ fun main(args : Array<String>) {
         try {
             var jsonObject = JSONObject(request.body())
             if (jsonObject.has("username") && jsonObject.has("password")) {
-                var hash = login(username = jsonObject.getString("username"),
+                val result = login(username = jsonObject.getString("username"),
                         password = jsonObject.getString("password"))
-                if (!hash.isEmpty()) {
-                    "{ \"hash\" : \"$hash\"}"
+                if (!result.isValide()) {
+                    result.toJson()
                 } else {
                     "{ \"status\" : 400, \"message\" : \"username or password are not given\"}"
                 }
@@ -37,8 +38,8 @@ fun main(args : Array<String>) {
 }
 
 
-fun login(username: String, password: String): String {
-    var hash = ""
+fun login(username: String, password: String): Result {
+    var result = Result()
     try {
         val capabilities = DesiredCapabilities.chrome()
         var options = ChromeOptions()
@@ -61,16 +62,30 @@ fun login(username: String, password: String): String {
 
         val content = driver.pageSource
 
-        val pattern = Pattern.compile("[0-9a-f]{32}")
-        val matcher = pattern.matcher(content)
+        val pattern = "[0-9a-f]{32}".toPattern()
+        result.hash = "[0-9a-f]{32}"
+                .toRegex()
+                .find(content)
+                ?.value ?: ""
 
-        while (matcher.find()) {
-            hash = matcher.group()
-            break
-        }
+        val doc = Jsoup.parse(content)
+        val studInfoDiv = doc.select("#studinfo td").first()
+        var studInfo = studInfoDiv.html()
+        studInfo = studInfo.replace("<\\/?strong>|\\(\\d+\\)|(Name|Seminargruppe)\\:".toRegex(), "")
+        var params = studInfo
+                .split("(<br>|,)".toRegex())
+                .map { it.trim() }
+        result.surename = params[0]
+        result.forename = params[1]
+        result.group = params[2]
+        result.course = params[3]
+
+        var universityAnchor = doc.select("a[href=\"/dash/index\"]").first().html()
+        result.university = universityAnchor
+
         driver.quit()
     } catch (e : Exception) {
         e.printStackTrace()
     }
-    return hash
+    return result
 }

@@ -2,6 +2,6 @@ version : '3'
 services:
   loginservice-01:
     container_name: "loginservice-01"
-    image: stpapp/loginservice
+    image: plan4ba/loginservice
     ports:
        - "8080:8080"

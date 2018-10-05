@@ -1,5 +1,5 @@
 # Loginserice
-Container to authenticate against Campus Dual and return a userspecific hash
+Container to authenticate against Campus Dual and return userspecific content
 
 ## usage
 POST http(s)://Container:8080/login
@@ -18,7 +18,12 @@ RESPONSE:
     
     200:
         {
-            "hash" : "12389dskjfln324...."
+            "course": "course",
+            "forename": "Max",
+            "group": "6HT13-1",
+            "hash": "aff1afdfa1f23df....",
+            "surename": "Mustermann",
+            "university": "Staatliche Studienakademie Leipzig"
         }
 ### curl example
 curl -X POST \
