@@ -15,7 +15,7 @@ RUN wget https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.z
     && rm chromedriver_linux64.zip \
     && chmod +x chromedriver
 
-ADD ./target/LoginService-${LOGINSERVICE_VERSION}-SNAPSHOT-jar-with-dependencies.jar /app/LoginService.jar
+ADD ./target/LoginService-${LOGINSERVICE_VERSION}-jar-with-dependencies.jar /app/LoginService.jar
 ADD ./run.sh /app/run.sh
 RUN chmod +x /app/run.sh
 
