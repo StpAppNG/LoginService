@@ -6,7 +6,7 @@
 
     <groupId>de.ddkfm.plan4ba</groupId>
     <artifactId>LoginService</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
 
     <properties>
         <kotlin.version>1.2.71</kotlin.version>
@@ -17,7 +17,7 @@
     <dependencies>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-jdk8</artifactId>
+            <artifactId>kotlin-stdlib</artifactId>
             <version>${kotlin.version}</version>
         </dependency>
         <dependency>

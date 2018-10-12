@@ -7,32 +7,40 @@ import org.openqa.selenium.By
 import org.openqa.selenium.chrome.ChromeOptions
 import org.openqa.selenium.remote.DesiredCapabilities
 import org.openqa.selenium.remote.RemoteWebDriver
+import spark.Spark.*
 import spark.kotlin.port
-import spark.kotlin.post
 import java.net.URL
+import java.util.*
 
 
 fun main(args : Array<String>) {
-    port(8080)
+    port(8082)
 
-    post("/login") {
-        response.type("application/json")
+    get("/login") { req, resp ->
+        resp.type("application/json")
         try {
-            var jsonObject = JSONObject(request.body())
-            if (jsonObject.has("username") && jsonObject.has("password")) {
-                val result = login(username = jsonObject.getString("username"),
-                        password = jsonObject.getString("password"))
-                if (result.isValide()) {
-                    result.toJson()
-                } else {
-                    "{ \"status\" : 400, \"message\" : \"username or password are not given\"}"
-                }
+            val auth = req.headers("Authorization")
+            if (auth == null || !auth.startsWith("Basic ")) {
+                resp.header("WWW-Authenticate", "Basic realm=\"Anmeldung wird benötigt\"")
+                halt(401, "Unauthorized")
             } else {
-                "{ \"status\" : 401, \"message\" : \"unauthorized\"}"
+                val encoded = String(Base64.getDecoder().decode(auth.replace("Basic", "").trim().toByteArray()))
+                if (encoded.contains(":")) {
+                    val username = encoded.split(":")[0]
+                    val password = encoded.split(":")[1]
+                    val result = login(username, password)
+                    if (result.isValide()) {
+                        result.toJson()
+                    } else {
+                        "{ \"status\" : 400, \"message\" : \"username or password are not given\"}"
+                    }
+                } else {
+                    "{ \"status\" : 401, \"message\" : \"unauthorized\"}"
+                }
             }
         } catch (e : Exception) {
             e.printStackTrace()
-            "{ \"status\" : 400 , \"message\" : \"Error by processing the request: ${e.message}\"}"
+            "{ \"status\" : 401, \"message\" : \"unauthorized\"}"
         }
     }
 }

@@ -2,7 +2,7 @@ FROM library/openjdk:10-jre
 
 WORKDIR /app
 
-ARG LOGINSERVICE_VERSION=1.0
+ARG LOGINSERVICE_VERSION=1.1
 
 RUN apt-get update -qqy \
   && apt-get install -y fonts-liberation libappindicator3-1 libxss1 lsb-release xdg-utils \
