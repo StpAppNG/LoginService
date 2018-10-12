@@ -32,14 +32,17 @@ fun main(args : Array<String>) {
                     if (result.isValide()) {
                         result.toJson()
                     } else {
+                        resp.status(400)
                         "{ \"status\" : 400, \"message\" : \"username or password are not given\"}"
                     }
                 } else {
+                    resp.status(401)
                     "{ \"status\" : 401, \"message\" : \"unauthorized\"}"
                 }
             }
         } catch (e : Exception) {
             e.printStackTrace()
+            resp.status(401)
             "{ \"status\" : 401, \"message\" : \"unauthorized\"}"
         }
     }
