@@ -1,20 +1,17 @@
 package de.ddkfm.plan4ba
 
+import com.mashape.unirest.http.Unirest
 import de.ddkfm.plan4ba.models.Result
-import org.json.JSONObject
+import org.apache.http.impl.client.HttpClients
 import org.jsoup.Jsoup
-import org.openqa.selenium.By
-import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.remote.DesiredCapabilities
-import org.openqa.selenium.remote.RemoteWebDriver
-import spark.Spark.*
+import spark.Spark.get
+import spark.Spark.halt
 import spark.kotlin.port
-import java.net.URL
 import java.util.*
 
 
 fun main(args : Array<String>) {
-    port(8082)
+    port(8080)
 
     get("/login") { req, resp ->
         resp.type("application/json")
@@ -28,7 +25,12 @@ fun main(args : Array<String>) {
                 if (encoded.contains(":")) {
                     val username = encoded.split(":")[0]
                     val password = encoded.split(":")[1]
-                    val result = login(username, password)
+                    var result = Result()
+                    if(getEnvOrDefault("ENABLE_DUMMY_MODE", "false").toBoolean())
+                        result = loginDummy(username, password)
+                    else {
+                        result = loginWithUnirest(username, password)
+                    }
                     if (result.isValide()) {
                         result.toJson()
                     } else {
@@ -48,55 +50,97 @@ fun main(args : Array<String>) {
     }
 }
 
+fun loginDummy(username: String, password: String) : Result {
+    return Result(
+            forename = "Maximilian",
+            surename = "Schädlich",
+            university = "Staatliche Studienakademie Leipzig",
+            group = "",
+            course = "",
+            hash = ""
+    )
+}
 
-fun login(username: String, password: String): Result {
-    var result = Result()
-    try {
-        val capabilities = DesiredCapabilities.chrome()
-        var options = ChromeOptions()
-        options.addArguments("--headless")
-        options.addArguments("--no-sandbox")
-        capabilities.setCapability(ChromeOptions.CAPABILITY, options)
-        val driver = RemoteWebDriver(URL("http://localhost:9515"), capabilities)
+fun loginWithUnirest(username: String, password: String) : Result {
+    val result = Result()
+    Unirest.setHttpClient(HttpClients.createDefault())
+    val firstLogin = Unirest.get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
+            .header("Connection", "keep-alive")
+            .header("Cache-Control", "max-age=0")
+            .header("Upgrade-Insecure-Requests", "1")
+            .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36")
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
+            .header("Accept-Encoding", "gzip, deflate, br")
+            .header("Accept-Language", "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7,de-AT;q=0.6")
 
-        driver.get("https://selfservice.campus-dual.de/index/login")
+    val resp = firstLogin.asString()
+    val respDoc = Jsoup.parse(resp.body)
+    val xsrfToken = respDoc.getElementsByAttributeValue("name", "sap-login-XSRF").attr("value")
+    val cookies = resp.headers["set-cookie"]
+    println("$xsrfToken")
+    println("cookies : $cookies")
+    println("First: ${resp.status} \nHeaders\n ${resp.headers} \nBody\n ${resp.body}")
+    val secondRequest = Unirest.post("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
+            .header("Connection", "keep-alive")
+            .header("Cache-Control", "max-age=0")
+            .header("Origin", "https://erp.campus-dual.de")
+            .header("Upgrade-Insecure-Requests", "1")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36")
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
+            .header("Referer", "https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
+            .header("Accept-Encoding", "gzip, deflate, br")
+            .header("Accept-Language", "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7,de-AT;q=0.6")
+            .header("Cookie", cookies?.joinToString(separator = "; ") ?: "")
+            .field("FOCUS_ID", "sap-user")
+            .field("sap-system-login-oninputprocessing", "onLogin")
+            .field("sap-urlscheme", "")
+            .field("sap-system-login", "onLogin")
+            .field("sap-system-login-basic_auth", "")
+            .field("sap-client", "100")
+            .field("sap-language", "DE")
+            .field("sap-accessibility", "")
+            .field("sap-login-XSRF", "$xsrfToken")
+            .field("sap-system-login-ookie_disabled", "")
+            .field("sap-user", "$username")
+            .field("sap-password", "$password")
+            .field("SAPEVENTQUEUE", "Form_Submit%7EE002Id%7EE004SL__FORM%7EE003%7EE002ClientAction%7EE004submit%7EE005ActionUrl%7EE004%7EE005ResponseData%7EE004full%7EE005PrepareScript%7EE004%7EE003%7EE002%7EE003")
+    val secondResp = secondRequest.asString()
+    println("Second: ${secondResp?.status} \nHeaders\n ${secondResp?.headers} \nBody\n ${secondResp?.body}")
 
-        val userField = driver.findElement(By.id("sap-user"))
-        userField.sendKeys(username)
+    val thirdLogin = Unirest.get("https://selfservice.campus-dual.de/index/login")
+            .header("Connection", "keep-alive")
+            .header("Cache-Control", "max-age=0")
+            .header("Upgrade-Insecure-Requests", "1")
+            .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36")
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
+            .header("Referer", "https://selfservice.campus-dual.de/index/logout")
+            .header("Accept-Encoding", "gzip, deflate, br")
+            .header("Accept-Language", "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7,de-AT;q=0.6")
+            .header("Cookie", secondResp.headers["set-cookie"]?.joinToString(separator = "; ") ?: "")
 
-        val passwordField = driver.findElement(By.id("sap-password"))
-        passwordField.sendKeys(password)
+    val thirdResp = thirdLogin.asString()
+    println("Third: ${thirdResp.status} \nHeaders\n ${thirdResp.headers} \nBody\n ${thirdResp.body}")
 
-        userField.submit()
+    val content = thirdResp.body
 
-        driver.get("https://selfservice.campus-dual.de/index/login")
+    result.hash = "[0-9a-f]{32}"
+            .toRegex()
+            .find(content)
+            ?.value ?: ""
 
-        val content = driver.pageSource
+    val doc = Jsoup.parse(content)
+    val studInfoDiv = doc.select("#studinfo td").first()
+    var studInfo = studInfoDiv.html()
+    studInfo = studInfo.replace("<\\/?strong>|\\(\\d+\\)|(Name|Seminargruppe)\\:".toRegex(), "")
+    var params = studInfo
+            .split("(<br>|,)".toRegex())
+            .map { it.trim() }
 
-        val pattern = "[0-9a-f]{32}".toPattern()
-        result.hash = "[0-9a-f]{32}"
-                .toRegex()
-                .find(content)
-                ?.value ?: ""
-
-        val doc = Jsoup.parse(content)
-        val studInfoDiv = doc.select("#studinfo td").first()
-        var studInfo = studInfoDiv.html()
-        studInfo = studInfo.replace("<\\/?strong>|\\(\\d+\\)|(Name|Seminargruppe)\\:".toRegex(), "")
-        var params = studInfo
-                .split("(<br>|,)".toRegex())
-                .map { it.trim() }
-        result.surename = params[0]
-        result.forename = params[1]
-        result.group = params[2]
-        result.course = params[3]
-
-        var universityAnchor = doc.select("a[href=\"/dash/index\"]").first().html()
-        result.university = universityAnchor
-
-        driver.quit()
-    } catch (e : Exception) {
-        e.printStackTrace()
-    }
+    result.surename = params[0]
+    result.forename = params[1]
+    result.group = params[2]
+    result.course = params[3]
+    result.university = doc.select("a[href=\"/dash/index\"]").first().html()
     return result
 }

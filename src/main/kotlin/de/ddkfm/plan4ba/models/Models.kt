@@ -7,9 +7,6 @@ data class DatabaseConfig(
         var username : String,
         var password : String
 )
-data class Config(
-        var database : DatabaseConfig
-)
 
 data class Result(
         var forename : String = "",
