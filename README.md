@@ -1,14 +1,12 @@
 # Loginserice
 Container to authenticate against Campus Dual and return userspecific content
 
+## deployment
+``
+docker run -d --rm --name loginservice -p 8080:8080 loginservice
+``
 ## usage
-POST http(s)://Container:8080/login
-
-BODY:
-    {
-        "username" : "username",
-        "password" : "password"
-    }
+GET http(s)://Container:8080/login
 
 RESPONSE:
     
@@ -26,12 +24,8 @@ RESPONSE:
             "university": "Staatliche Studienakademie Leipzig"
         }
 ### curl example
-curl -X POST \
-  http://localhost:8080/login \
-  -H 'content-type: application/json' \
-  -d '{
-	"username" : "<Your username here>",
-	"password" : "<Your Password here>"
-}'
+``
+curl -X GET http://localhost:8080/login --user <Your Username>
+``
 
 
