@@ -2,7 +2,10 @@ package de.ddkfm.plan4ba
 
 import com.mashape.unirest.http.Unirest
 import de.ddkfm.plan4ba.models.Result
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy
 import org.apache.http.impl.client.HttpClients
+import org.apache.http.ssl.SSLContexts
 import org.jsoup.Jsoup
 import spark.Spark.get
 import spark.Spark.halt
@@ -12,6 +15,16 @@ import java.util.*
 
 fun main(args : Array<String>) {
     port(8080)
+
+    val sslcontext = SSLContexts.custom()
+        .loadTrustMaterial(null, TrustSelfSignedStrategy())
+        .build()
+
+    val sslsf = SSLConnectionSocketFactory(sslcontext)
+    val httpclient = HttpClients.custom()
+        .setSSLSocketFactory(sslsf)
+        .build()
+    Unirest.setHttpClient(httpclient)
 
     get("/login") { req, resp ->
         resp.type("application/json")
@@ -63,7 +76,6 @@ fun loginDummy(username: String, password: String) : Result {
 
 fun loginWithUnirest(username: String, password: String) : Result {
     val result = Result()
-    Unirest.setHttpClient(HttpClients.createDefault())
     val firstLogin = Unirest.get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
             .header("Connection", "keep-alive")
             .header("Cache-Control", "max-age=0")
