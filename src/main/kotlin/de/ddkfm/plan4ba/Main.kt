@@ -1,30 +1,34 @@
 package de.ddkfm.plan4ba
 
-import com.mashape.unirest.http.Unirest
 import de.ddkfm.plan4ba.models.Result
+import org.apache.http.conn.ssl.NoopHostnameVerifier
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy
 import org.apache.http.impl.client.HttpClients
+import org.apache.http.ssl.SSLContextBuilder
 import org.apache.http.ssl.SSLContexts
 import org.jsoup.Jsoup
 import spark.Spark.get
 import spark.Spark.halt
 import spark.kotlin.port
 import java.util.*
+import org.apache.http.impl.client.CloseableHttpClient
+import unirest.Unirest
+import java.security.cert.X509Certificate
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 
 fun main(args : Array<String>) {
     port(8080)
 
-    val sslcontext = SSLContexts.custom()
-        .loadTrustMaterial(null, TrustSelfSignedStrategy())
-        .build()
+    Unirest.config().httpClient(HttpClients.custom()
+            .setSSLContext(SSLContextBuilder().loadTrustMaterial(null) { chains, type -> true}.build())
+            .setSSLHostnameVerifier(NoopHostnameVerifier())
+            .build())
 
-    val sslsf = SSLConnectionSocketFactory(sslcontext)
-    val httpclient = HttpClients.custom()
-        .setSSLSocketFactory(sslsf)
-        .build()
-    Unirest.setHttpClient(httpclient)
 
     get("/login") { req, resp ->
         resp.type("application/json")
