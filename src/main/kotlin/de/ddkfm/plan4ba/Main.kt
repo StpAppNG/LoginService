@@ -1,9 +1,12 @@
 package de.ddkfm.plan4ba
 
+import com.mashape.unirest.http.Unirest
 import de.ddkfm.plan4ba.models.Result
-import org.apache.http.conn.ssl.NoopHostnameVerifier
+import org.apache.http.client.HttpClient
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy
+import org.apache.http.conn.ssl.TrustStrategy
+import org.apache.http.impl.client.CloseableHttpClient
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.ssl.SSLContextBuilder
 import org.apache.http.ssl.SSLContexts
@@ -11,24 +14,22 @@ import org.jsoup.Jsoup
 import spark.Spark.get
 import spark.Spark.halt
 import spark.kotlin.port
-import java.util.*
-import org.apache.http.impl.client.CloseableHttpClient
-import unirest.Unirest
 import java.security.cert.X509Certificate
+import java.util.*
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+import java.security.KeyManagementException
+import java.security.KeyStoreException
+import java.security.NoSuchAlgorithmException
+import java.security.cert.CertificateException
 
 
 fun main(args : Array<String>) {
     port(8080)
 
-    Unirest.config().httpClient(HttpClients.custom()
-            .setSSLContext(SSLContextBuilder().loadTrustMaterial(null) { chains, type -> true}.build())
-            .setSSLHostnameVerifier(NoopHostnameVerifier())
-            .build())
-
+    Unirest.setHttpClient(makeHttpClient())
 
     get("/login") { req, resp ->
         resp.type("application/json")
@@ -69,12 +70,12 @@ fun main(args : Array<String>) {
 
 fun loginDummy(username: String, password: String) : Result {
     return Result(
-            forename = "Maximilian",
-            surename = "Schädlich",
-            university = "Staatliche Studienakademie Leipzig",
-            group = "",
-            course = "",
-            hash = ""
+        forename = "Maximilian",
+        surename = "Schädlich",
+        university = "Staatliche Studienakademie Leipzig",
+        group = "",
+        course = "",
+        hash = ""
     )
 }
 
@@ -154,4 +155,34 @@ fun loginWithUnirest(username: String, password: String) : Result {
     result.course = params[3]
     result.university = doc.select("a[href=\"/dash/index\"]").first().html()
     return result
+}
+
+fun makeHttpClient() : HttpClient? {
+    val builder = SSLContextBuilder()
+    var httpclient: CloseableHttpClient? = null
+    try {
+        // builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+        builder.loadTrustMaterial(null, object : TrustStrategy {
+            @Throws(CertificateException::class)
+            override fun isTrusted(chain: Array<X509Certificate>, authType: String): Boolean {
+                return true
+            }
+        })
+        val sslsf = SSLConnectionSocketFactory(
+            builder.build())
+        httpclient = HttpClients.custom().setSSLSocketFactory(
+            sslsf).build()
+        println("custom httpclient called")
+        System.out.println(httpclient)
+
+    } catch (e: NoSuchAlgorithmException) {
+        e.printStackTrace()
+    } catch (e: KeyStoreException) {
+        e.printStackTrace()
+    } catch (e: KeyManagementException) {
+        e.printStackTrace()
+    }
+
+
+    return httpclient
 }
