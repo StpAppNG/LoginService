@@ -52,18 +52,19 @@ fun main(args : Array<String>) {
                     if (result.isValide()) {
                         result.toJson()
                     } else {
-                        resp.status(400)
-                        "{ \"status\" : 400, \"message\" : \"username or password are not given\"}"
+                        val result = mapOf(
+                            "status" to 400,
+                            "message" to "username or password are not given"
+                        )
+                        halt(400, result.toJson())
                     }
                 } else {
-                    resp.status(401)
-                    "{ \"status\" : 401, \"message\" : \"unauthorized\"}"
+                    halt(401, mapOf("status" to 401, "message" to "unauthorized").toJson())
                 }
             }
         } catch (e : Exception) {
             e.printStackTrace()
-            resp.status(401)
-            "{ \"status\" : 401, \"message\" : \"unauthorized\"}"
+            halt(401, mapOf("status" to 401, "message" to "unauthorized").toJson())
         }
     }
 }

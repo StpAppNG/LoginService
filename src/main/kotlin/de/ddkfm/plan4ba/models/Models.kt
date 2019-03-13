@@ -16,12 +16,5 @@ data class Result(
         var course : String ="",
         var university : String = ""
 ) {
-    fun toJson() : String {
-        return Result::class.java.declaredFields
-                .map{ member ->
-                    "\"${member.name}\" : \"${member.get(this)}\""
-                }
-                .joinToString(separator = ",", prefix = "{", postfix = "}")
-    }
     fun isValide() : Boolean = !(hash.isEmpty() || group.isEmpty() || university.isEmpty())
 }
