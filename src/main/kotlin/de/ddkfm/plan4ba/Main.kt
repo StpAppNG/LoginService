@@ -1,35 +1,28 @@
 package de.ddkfm.plan4ba
 
-import com.mashape.unirest.http.Unirest
 import de.ddkfm.plan4ba.models.Result
+import kong.unirest.Unirest
 import org.apache.http.client.HttpClient
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy
 import org.apache.http.conn.ssl.TrustStrategy
 import org.apache.http.impl.client.CloseableHttpClient
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.ssl.SSLContextBuilder
-import org.apache.http.ssl.SSLContexts
 import org.jsoup.Jsoup
 import spark.Spark.get
 import spark.Spark.halt
 import spark.kotlin.port
-import java.security.cert.X509Certificate
-import java.util.*
-import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 import java.security.KeyManagementException
 import java.security.KeyStoreException
 import java.security.NoSuchAlgorithmException
 import java.security.cert.CertificateException
+import java.security.cert.X509Certificate
+import java.util.*
 
 
 fun main(args : Array<String>) {
+    val httpPort = getEnvOrDefault("HTTP_PORT", "8080")
     port(8080)
-
-    Unirest.setHttpClient(makeHttpClient())
 
     get("/login") { req, resp ->
         resp.type("application/json")
@@ -81,8 +74,12 @@ fun loginDummy(username: String, password: String) : Result {
 }
 
 fun loginWithUnirest(username: String, password: String) : Result {
+    val instance = Unirest.primaryInstance()
+    instance
+        .config()
+        .httpClient(makeHttpClient())
     val result = Result()
-    val firstLogin = Unirest.get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
+    val firstLogin = instance.get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
             .header("Connection", "keep-alive")
             .header("Cache-Control", "max-age=0")
             .header("Upgrade-Insecure-Requests", "1")
@@ -95,7 +92,7 @@ fun loginWithUnirest(username: String, password: String) : Result {
     val respDoc = Jsoup.parse(resp.body)
     val xsrfToken = respDoc.getElementsByAttributeValue("name", "sap-login-XSRF").attr("value")
     val cookies = resp.headers["set-cookie"]
-    val secondRequest = Unirest.post("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
+    val secondRequest = instance.post("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
             .header("Connection", "keep-alive")
             .header("Cache-Control", "max-age=0")
             .header("Origin", "https://erp.campus-dual.de")
@@ -122,7 +119,7 @@ fun loginWithUnirest(username: String, password: String) : Result {
             .field("SAPEVENTQUEUE", "Form_Submit%7EE002Id%7EE004SL__FORM%7EE003%7EE002ClientAction%7EE004submit%7EE005ActionUrl%7EE004%7EE005ResponseData%7EE004full%7EE005PrepareScript%7EE004%7EE003%7EE002%7EE003")
     val secondResp = secondRequest.asString()
 
-    val thirdLogin = Unirest.get("https://selfservice.campus-dual.de/index/login")
+    val thirdLogin = instance.get("https://selfservice.campus-dual.de/index/login")
             .header("Connection", "keep-alive")
             .header("Cache-Control", "max-age=0")
             .header("Upgrade-Insecure-Requests", "1")
