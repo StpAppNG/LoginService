@@ -21,7 +21,7 @@ services:
         image: loginservice
 ```
 ## development
-### requirements
+### requirements    
 - Docker & Docker compose(see deployment)
 - Java(OpenJDK > 11)
 - Maven 3

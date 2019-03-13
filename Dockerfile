@@ -2,7 +2,7 @@ FROM library/openjdk:11-jre
 
 WORKDIR /app
 
-ARG LOGINSERVICE_VERSION=1.3
+ARG LOGINSERVICE_VERSION=1.4
 ADD ./target/LoginService-${LOGINSERVICE_VERSION}-jar-with-dependencies.jar /app/LoginService.jar
 
 EXPOSE 8080
