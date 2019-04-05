@@ -1,6 +1,7 @@
 package de.ddkfm.plan4ba
 
 import de.ddkfm.plan4ba.models.Result
+import io.sentry.event.Event
 import kong.unirest.Unirest
 import org.apache.http.client.HttpClient
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
@@ -12,6 +13,7 @@ import org.jsoup.Jsoup
 import spark.Spark.get
 import spark.Spark.halt
 import spark.kotlin.port
+import java.net.InetAddress
 import java.security.KeyManagementException
 import java.security.KeyStoreException
 import java.security.NoSuchAlgorithmException
@@ -21,8 +23,8 @@ import java.util.*
 
 
 fun main(args : Array<String>) {
-    val httpPort = getEnvOrDefault("HTTP_PORT", "8080")
-    port(8080)
+    val httpPort = getEnvOrDefault("HTTP_PORT", "8080").toIntOrNull() ?: 8080
+    port(httpPort)
 
     get("/login") { req, resp ->
         resp.type("application/json")
@@ -56,8 +58,22 @@ fun main(args : Array<String>) {
                 }
             }
         } catch (e : Exception) {
-            e.printStackTrace()
+            SentryTurret.log {
+                val auth = req.headers("Authorization")
+                val encoded = String(Base64.getDecoder().decode(auth.replace("Basic", "").trim().toByteArray()))
+                user(username = encoded.split(":").firstOrNull() ?: "")
+            }.capture(e)
             halt(401, mapOf("status" to 401, "message" to "unauthorized").toJson())
+        }
+    }
+    val dsn = System.getenv("SENTRY_DSN")
+    dsn?.let {
+        println("DSN $dsn joined")
+        SentryTurret.log {
+            addTag("Service", "Loginservice")
+        }.event {
+            withMessage("Loginservice ${InetAddress.getLocalHost().hostName} joined")
+            withLevel(Event.Level.INFO)
         }
     }
 }
@@ -159,7 +175,6 @@ fun makeHttpClient() : HttpClient? {
     val builder = SSLContextBuilder()
     var httpclient: CloseableHttpClient? = null
     try {
-        // builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
         builder.loadTrustMaterial(null, object : TrustStrategy {
             @Throws(CertificateException::class)
             override fun isTrusted(chain: Array<X509Certificate>, authType: String): Boolean {
@@ -173,12 +188,10 @@ fun makeHttpClient() : HttpClient? {
         println("custom httpclient called")
         System.out.println(httpclient)
 
-    } catch (e: NoSuchAlgorithmException) {
-        e.printStackTrace()
-    } catch (e: KeyStoreException) {
-        e.printStackTrace()
-    } catch (e: KeyManagementException) {
-        e.printStackTrace()
+    } catch (e: Exception) {
+        SentryTurret.log {
+            addTag("HttpClient", "")
+        }.capture(e)
     }
 
 

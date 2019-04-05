@@ -7,7 +7,7 @@ import io.sentry.event.BreadcrumbBuilder
 import io.sentry.event.EventBuilder
 import io.sentry.event.UserBuilder
 
-fun Context.user(username : String = "generic", email : String = "dbservice@plan4ba.ba-leipzig.de", data : Map<String, Any?> = emptyMap()) {
+fun Context.user(username : String = "generic", email : String = "loginservice@plan4ba.ba-leipzig.de", data : Map<String, Any?> = emptyMap()) {
     this.user = UserBuilder()
         .setUsername(username)
         .setEmail(email)
