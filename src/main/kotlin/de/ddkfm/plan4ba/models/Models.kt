@@ -1,5 +1,7 @@
 package de.ddkfm.plan4ba.models
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+
 data class DatabaseConfig(
         var host : String,
         var port : Int,
@@ -16,5 +18,6 @@ data class Result(
         var course : String ="",
         var university : String = ""
 ) {
+    @JsonIgnore
     fun isValide() : Boolean = !(hash.isEmpty() || group.isEmpty() || university.isEmpty())
 }
