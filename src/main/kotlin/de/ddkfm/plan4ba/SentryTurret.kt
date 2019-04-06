@@ -6,6 +6,7 @@ import io.sentry.context.Context
 import io.sentry.event.BreadcrumbBuilder
 import io.sentry.event.EventBuilder
 import io.sentry.event.UserBuilder
+import java.util.*
 
 fun Context.user(username : String = "generic", email : String = "loginservice@plan4ba.ba-leipzig.de", data : Map<String, Any?> = emptyMap()) {
     this.user = UserBuilder()
@@ -31,7 +32,7 @@ fun SentryClient.event(lambda : EventBuilder.() -> Unit) {
 }
 object SentryTurret {
     fun log(lambda : Context.() -> Unit) : SentryClient {
-        val client = SentryClientFactory.sentryClient()
+        val client = SentryClientFactory.sentryClient(System.getenv("SENTRY_DSN"))
         client.context.lambda()
         return client
     }
