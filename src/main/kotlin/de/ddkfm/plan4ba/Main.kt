@@ -59,7 +59,7 @@ fun main(args : Array<String>) {
             }
         } catch (e : Exception) {
             SentryTurret.log {
-                val auth = req.headers("Authorization")
+                val auth = req.headers("Authorization") ?: ""
                 val encoded = String(Base64.getDecoder().decode(auth.replace("Basic", "").trim().toByteArray()))
                 user(username = encoded.split(":").firstOrNull() ?: "")
             }.capture(e)
